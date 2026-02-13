@@ -33,3 +33,33 @@
 - Added ENV HOSTNAME=0.0.0.0 to docker/Dockerfile.frontend production stage
 - Forces Next.js to bind to all network interfaces (0.0.0.0) instead of hostname
 - Healthcheck now succeeds, container marked as healthy
+
+---
+
+## 2026-02-13 - Telegram Bot Not Responding to /start Command
+
+**Issue:** Telegram bot not responding when user sends /start command
+
+**Symptoms:**
+- Bot initialized but no response to commands
+- Bot service instance created via getTelegramBotService() but never started
+- No console output or errors
+
+**Root Cause:**
+1. Missing `eq` import from drizzle-orm in bot.service.ts (compilation error)
+2. Bot service never had startWebhook() method called after initialization
+3. No dedicated entry point to start and keep bot running
+4. autoRetry plugin misconfigured for grammY v1.x API
+
+**Solution:**
+- Added `import { eq } from 'drizzle-orm'` to bot.service.ts
+- Fixed autoRetry configuration: changed from client option to bot.api.config.use(autoRetry())
+- Created backend/telegram/index.ts as bot entry point with:
+  - Healthcheck server (port 3003)
+  - Automatic polling mode when TELEGRAM_WEBHOOK_URL not set
+  - Graceful shutdown handlers
+- Added "telegram": "bun run backend/telegram/index.ts" to package.json scripts
+- Fixed null handling in /status command for subscription filters
+- Bot now runs continuously and responds to all commands
+
+**Status:** RESOLVED

@@ -90,6 +90,37 @@
 
 ---
 
+## 2026-02-13 - Phase 2: Core API (Continued)
+
+**19:00:00** Almaty Data Source Integration Completed:
+- Fixed air quality adapter to handle air.org.kz API response structure
+  - Updated `AirQualityDistrictData` interface to handle `_avg` suffix fields
+  - Added `AirQualityAPIResponse` wrapper interface for `districts` array
+  - Updated `parseAirQualityData()` to normalize field names (`pm25_avg` → `pm25`, etc.)
+- Weather adapter: 8 events created successfully from Open Meteo API
+- Air quality adapter: 8 events created successfully from air.org.kz API
+- All Almaty sources polling correctly with proper intervals
+  - Weather: 3600s (1 hour)
+  - Air Quality: 1800s (30 minutes)
+
+**19:05:00** Frontend API Route Created:
+- Created `app/api/v1/map/events/route.ts` to proxy map requests to backend
+- Handles `bounds`, `type`, `severity` query parameters
+- Adds 5-minute cache for backend load optimization
+- Proper error handling and status forwarding
+
+**19:10:00** System Status:
+- Docker services: All healthy (postgres, redis, api, worker, telegram-worker, frontend)
+- API endpoints: All responding correctly
+  - `/api/v1/events` - Returns weather, health events
+  - `/api/v1/map/events` - Returns GeoJSON with weather events
+  - `/health` - Health check passing
+- Ingestion: Working correctly with automatic polling
+  - Events being created and updated on schedule
+  - Deduplication working (fingerprint-based)
+
+---
+
 ## 2026-02-13 - Phase 2: Core API
 
 **16:00:00** Created Zod validation schemas:
@@ -533,3 +564,220 @@
 **10:49:18** Created seed-almaty-sources.ts script to populate Almaty data sources
 **10:49:18** Completed Step 1: Foundation (Backend) - Weather adapter ready for testing
 **10:49:18** Beginning Step 2: Air Quality Integration
+
+**[Current Time]** Fixed mock loader path bug:
+- Changed `mocksDir = join(__dirname, 'mocks')` to `mocksDir = __dirname` in mock-loader.ts
+- The loader file is inside the mocks directory, so __dirname already points to the correct location
+- Mock data files now load correctly from backend/adapters/mocks/
+
+**[Current Time]** Wired AirQualityAdapter into scheduler:
+- Added `createAirQualityAdapter` import to backend/worker/scheduler.ts
+- Updated createAdapter() to check `config.kind === 'air-quality'` for JSON sources
+- Air quality sources are now properly routed through the scheduler
+
+**[Current Time]** Enabled air quality source in seed script:
+- Uncommented and updated air quality source in backend/scripts/seed-almaty-sources.ts
+- Set enabled: true
+- Added config.kind: 'air-quality' and config.endpoint: 'city/districts'
+- Air quality source will be created with correct configuration
+
+**[Current Time]** Implemented AZhK Energy Adapter:
+- Created backend/adapters/energy-adapter.ts with HTML scraping support
+- Implements SourceAdapter interface with fetch() and normalize() methods
+- Fetches from https://www.azhk.kz/ru/spetsialnye-razdely/all-graphics
+- Parses HTML tables with Cheerio, extracting address, district, date/time, reason
+- Supports Russian date formats (DD.MM.YYYY) and time ranges (HH:MM-HH:MM)
+- Calculates severity based on duration and affected count
+- Includes mock data fallback via mockDataLoader
+- Coordinates stored as null (future: 2GIS geocoding API integration)
+- Factory function: createEnergyAdapter()
+
+**[Current Time]** Updated scheduler for energy adapter:
+- Added `createEnergyAdapter` import to backend/worker/scheduler.ts
+- Updated createAdapter() to handle HTML sources with config.kind === 'energy'
+- Energy sources are now properly routed through the scheduler
+
+**[Current Time]** Updated energy source in seed script:
+- Uncommented energy source placeholder in backend/scripts/seed-almaty-sources.ts
+- Added config.kind: 'energy' for proper adapter routing
+- Set enabled: false (adapter ready but source disabled until verified)
+
+**[Current Time]** Migrated map from MapLibre GL JS to 2GIS Map SDK:
+- Replaced MapLibre GL JS with 2GIS Map SDK in components/map/map-view.tsx
+- Added 2GIS API key: eb6f986c-4074-4a4d-b9c0-89f2575de50b
+- Configured map centered on Almaty: [76.8512, 43.2220] (lng, lat)
+- Implemented custom SVG marker icons based on event severity colors
+- Added popup functionality with event title, description, and detail link
+- Implemented auto-fit bounds to display all visible markers
+- Updated frontend-design-guidelines.md with 2GIS integration documentation
+- Future: Geocoding API integration for address → coordinates conversion
+
+---
+
+## 2026-02-13 (Continued - 2GIS Map Frontend Fixed)
+
+**19:20:00** Fixed 2GIS Map SDK Integration:
+- Fixed TypeScript type definitions for 2GIS SDK
+  - Updated `MapInstance`, `MarkerInstance`, `PopupInstance` interfaces
+  - Changed `MapglApi` to `MapApi` for consistency
+- Fixed method signatures and cleanup code
+  - `fitMapToMarkers()`: Updated bounds format for 2GIS SDK
+  - `updateMapMarkers()`: Fixed optional chaining issues
+  - Cleanup code: Proper null checks before calling `destroy()`/`remove()`
+- Rebuilt frontend container successfully
+- All Docker services: Healthy and running
+
+**19:25:00** System Status:
+- All services healthy (postgres, redis, api, worker, telegram-worker, frontend)
+- Frontend: Accessible on http://localhost:3000
+- API endpoints: All responding correctly
+  - `/api/v1/events` - Returns weather, health events
+  - `/api/v1/map/events` - Returns GeoJSON with weather events
+- Ingestion: Weather (8 events), Air Quality (8 events) working correctly
+
+---
+
+## 2026-02-13 (Continued - 2GIS Map Frontend Fixed)
+
+**19:20:00** Fixed 2GIS Map SDK Integration:
+- Fixed TypeScript type definitions for 2GIS SDK
+  - Updated `MapInstance`, `MarkerInstance`, `PopupInstance` interfaces
+  - Changed `MapglApi` to `MapApi` for consistency
+- Fixed method signatures and cleanup code
+  - `fitMapToMarkers()`: Updated bounds format for 2GIS SDK
+  - `updateMapMarkers()`: Fixed optional chaining issues
+  - Cleanup code: Proper null checks before calling `destroy()`/`remove()`
+- Rebuilt frontend container successfully
+- All Docker services: Healthy and running
+
+**19:25:00** System Status:
+- All services healthy (postgres, redis, api, worker, telegram-worker, frontend)
+- Frontend: Accessible on http://localhost:3000
+- API endpoints: All responding correctly
+  - `/api/v1/events` - Returns weather, health events
+  - `/api/v1/map/events` - Returns GeoJSON with weather events
+- Ingestion: Weather (8 events), Air Quality (8 events) working correctly
+EOF'
+
+---
+
+## 2026-02-13 (Darker Map UI Theme)
+
+**Session: Map UI Darker Color Scheme**
+
+**[Current Time]** Implemented darker color scheme for map page UI elements:
+- Updated components/map/map-view.tsx main container to use bg-[#131825] (darker surface)
+- Updated loading indicator to use dark background with primary blue spinner
+- Updated error panel to use dark background with critical red icon
+- Updated filter panel to use dark background (#131825) with bright borders (#374151)
+- Updated filter buttons to use dark background with primary blue accents
+- Updated Select component (components/ui/select.tsx) to use dark theme:
+  - SelectTrigger: dark background (#131825), bright borders (#374151), primary text (#E8EDF4)
+  - SelectContent: dark background for dropdown menu
+  - SelectItem: hover states use primary blue (#00D9FF) with 10% opacity
+- Updated Apply button to use dark background with primary blue border and text
+- Updated event count display to use dark background
+- All UI elements now use consistent dark theme matching Control Room aesthetic
+- Updated frontend-design-guidelines.md with version history entry
+EOF'
+
+---
+
+## 2026-02-13 (Telegram Worker Fixes)
+
+**[Current Time]** Fixed Telegram worker PostgreSQL operator errors:
+- Root cause: `@>` operator type mismatch - PostgreSQL requires both operands to be JSONB for JSONB containment
+- Fixed eventTypesFilter query (line 53):
+  - Changed: `${schema.telegramSubscriptions.eventTypesFilter} @> ARRAY['*']::text`
+  - To: `${schema.telegramSubscriptions.eventTypesFilter} @> '["*"]'::jsonb`
+  - Reason: `::text` cast creates text value, not JSONB. Must use `::jsonb` cast for proper JSONB containment
+- Fixed districtFilter query (lines 61-68):
+  - Changed: `EXISTS (SELECT 1 FROM UNNEST(${schema.telegramSubscriptions.districtFilter}) AS t WHERE t = ${eventId})`
+  - To: `${schema.telegramSubscriptions.districtFilter} = ${eventId}`
+  - Reason: `districtFilter` is TEXT column, not array - UNNEST() expects array
+- File: backend/telegram-worker/index.ts
+- Error "operator does not exist: jsonb @> text" now resolved
+EOF'
+
+---
+
+## 2026-02-13 (Map Fix - 2GIS to MapLibre GL Migration)
+
+**Session: Replace non-working 2GIS map with free MapLibre GL + OSM tiles**
+
+**[Current Time]** Replaced 2GIS Map SDK with MapLibre GL:
+- Updated components/map/map-view.tsx to use maplibre-gl instead of @2gis/mapgl
+- Removed API key requirement - now uses free OpenStreetMap raster tiles
+- Implemented custom SVG marker icons based on severity colors
+- Added map popup with event details and navigation link
+- Implemented auto-fit bounds to display all markers
+- Map centered on Almaty: [76.8512, 43.2220] (lng, lat)
+
+**[Current Time]** Added map/list view toggle to feed page:
+- Updated app/feed/page.tsx with ViewMode state ('list' | 'map')
+- Added toggle buttons with List and Map icons from lucide-react
+- Map displays in 600px height container with border
+- Filters preserved from original feed page
+- Map component hides built-in filters when embedded in feed page
+EOF'
+
+
+---
+
+## 2026-02-13 (Telegram Bot Fixes)
+
+**Session: Fix Telegram Bot /start command not responding**
+
+**[Current Time]** Fixed Telegram bot initialization issues:
+- Added missing `eq` import from 'drizzle-orm' in backend/telegram/bot.service.ts
+- Fixed autoRetry configuration for grammY bot:
+  - Changed from client option to bot.api.config.use() method
+  - Properly configures auto-retry for API calls with 3 max attempts, 60s max delay
+- Fixed null handling in /status command:
+  - Added null coalescing for subscription.eventTypesFilter and subscription.districtFilter
+  - Prevents TypeScript errors when subscription properties are null
+- Created backend/telegram/index.ts entry point for bot lifecycle:
+  - Healthcheck server on port 3003 (TELEGRAM_HEALTH_PORT env)
+  - Polling mode when TELEGRAM_WEBHOOK_URL not set
+  - Graceful shutdown (SIGINT/SIGTERM) with healthcheck cleanup
+- Added "telegram" script to package.json
+- Updated .env.example with complete Telegram configuration documentation
+
+**[Current Time]** Testing Telegram bot:
+- Bot starts successfully in polling mode
+- Healthcheck server responding on port 3003
+- Ready to receive /start, /help, /subscribe, /unsubscribe, /status commands
+EOF
+
+---
+
+## 2026-02-13 (Kazakhstan Cities Integration)
+
+**Session: Add Astana, Shymkent, Kyzylorda cities**
+
+**[Current Time]** Created seed scripts for all Kazakhstan cities:
+- Created backend/scripts/seed-kazakhstan-cities.ts - Universal script for all cities
+  - Supports Almaty, Astana, Shymkent, Kyzylorda
+  - Configurable per city (air quality, energy sources)
+  - Run all cities: bun run seed:cities
+  - Run single city: bun run seed:cities astana
+- Created backend/scripts/seed-astana-sources.ts - Astana (Астана) specific script
+  - Coordinates: 51.1605° N, 71.4704° E
+  - Timezone: Asia/Almaty
+  - Weather source from Open Meteo
+- Created backend/scripts/seed-shymkent-sources.ts - Shymkent (Шымкент) specific script
+  - Coordinates: 42.3000° N, 69.6000° E
+  - Timezone: Asia/Almaty
+  - Weather source from Open Meteo
+- Created backend/scripts/seed-kyzylorda-sources.ts - Kyzylorda (Кызылорда) specific script
+  - Coordinates: 44.8523° N, 65.5086° E
+  - Timezone: Asia/Qyzylorda
+  - Weather source from Open Meteo
+- Updated package.json with new seed scripts:
+  - seed:almaty - Run Almaty seed
+  - seed:astana - Run Astana seed
+  - seed:shymkent - Run Shymkent seed
+  - seed:kyzylorda - Run Kyzylorda seed
+  - seed:cities - Run all cities at once
+- Updated TODO.md with new Step 6 tasks
+EOF

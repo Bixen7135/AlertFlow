@@ -2,6 +2,8 @@ import { eq } from 'drizzle-orm';
 import { getDb, schema } from '../lib/db';
 import { createRSSAdapter } from '../adapters/rss-adapter';
 import { createWeatherAdapter } from '../adapters/weather-adapter';
+import { createAirQualityAdapter } from '../adapters/air-quality-adapter';
+import { createEnergyAdapter } from '../adapters/energy-adapter';
 import { ingestionService } from './ingestion.service';
 
 interface ScheduledSource {
@@ -185,13 +187,24 @@ export class Scheduler {
         return createRSSAdapter(source.id, source.url, source.config);
 
       case 'json':
-        // JSON adapter - currently used for weather API
-        // Will be extended for air quality and other JSON APIs
+        // JSON adapter - dispatch by config.kind
+        const jsonKind = source.config.kind as string;
+        if (jsonKind === 'air-quality') {
+          return createAirQualityAdapter(source.id, source.url, source.config);
+        }
+        if (jsonKind === 'weather') {
+          return createWeatherAdapter(source.id, source.url, source.config);
+        }
+        // Default to weather adapter for JSON sources without explicit kind
         return createWeatherAdapter(source.id, source.url, source.config);
 
-      // Future: HTML scraper adapter
-      // case 'html':
-      //   return createHTMLAdapter(source.id, source.url, source.config);
+      case 'html':
+        // HTML adapter - dispatch by config.kind
+        const htmlKind = source.config.kind as string;
+        if (htmlKind === 'energy') {
+          return createEnergyAdapter(source.id, source.url, source.config);
+        }
+        throw new Error(`Unsupported HTML source kind: ${htmlKind}`);
 
       default:
         throw new Error(`Unsupported source type: ${source.type}`);

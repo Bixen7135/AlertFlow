@@ -10,12 +10,24 @@ import { mockDataLoader } from './mocks/mock-loader';
  */
 interface AirQualityDistrictData {
   district: string;
-  pm25: number;
+  pm25_avg?: number;
+  pm10_avg?: number;
+  stations_count?: number;
+  pm25?: number;
   pm10?: number;
-  datetime: string;
+  datetime?: string;
   lat?: number;
   lon?: number;
-  station_count?: number;
+  timestamp?: string;
+}
+
+/**
+ * air.org.kz API Response wrapper
+ */
+interface AirQualityAPIResponse {
+  city: string;
+  timestamp: string;
+  districts: AirQualityDistrictData[];
 }
 
 /**
@@ -92,26 +104,43 @@ export class AirQualityAdapter implements SourceAdapter {
   private parseAirQualityData(data: any): RawEvent[] {
     const events: RawEvent[] = [];
 
-    // Handle array response (district or station data)
-    const records = Array.isArray(data) ? data : [data];
+    // Handle API response wrapper format
+    let records: any[];
+
+    if (data.districts && Array.isArray(data.districts)) {
+      // API response wrapper: { city, timestamp, districts: [...] }
+      records = data.districts;
+      for (const record of records) {
+        record.timestamp = data.timestamp;
+      }
+    } else if (Array.isArray(data)) {
+      records = data;
+    } else {
+      records = [data];
+    }
 
     for (const record of records) {
+      // Normalize field names - handle both _avg and non-_avg variants
+      const pm25 = record.pm25_avg ?? record.pm25;
+      const pm10 = record.pm10_avg ?? record.pm10;
+      const stationCount = record.stations_count ?? record.station_count ?? 0;
+
       // Skip invalid records
-      if (!record || record.pm25 === null || record.pm25 === undefined) {
+      if (!record || pm25 === null || pm25 === undefined) {
         continue;
       }
 
       const event: RawEvent = {
-        id: record.id || `aqi_${record.district}_${record.datetime}`,
+        id: record.id || `aqi_${record.district}_${record.timestamp || Date.now()}`,
         station_name: record.name || record.district,
         district: record.district,
-        pm25: record.pm25,
-        pm10: record.pm10,
-        aqi: this.calculateAQI(record.pm25, record.pm10),
+        pm25,
+        pm10,
+        aqi: this.calculateAQI(pm25, pm10),
         latitude: record.lat,
         longitude: record.lon,
-        datetime: record.datetime,
-        station_count: record.station_count,
+        datetime: record.timestamp,
+        station_count: stationCount,
         origin: record.origin || 'air.org.kz',
       };
 
@@ -133,6 +162,11 @@ export class AirQualityAdapter implements SourceAdapter {
     const latitude = (raw as any).latitude;
     const longitude = (raw as any).longitude;
     const datetime = (raw as any).datetime;
+
+    // Get city name from config (for future expansion)
+    const config = this.config || {};
+    const cityName = config.cityEn || config.city || 'Almaty';
+    const locationCity = config.location || config.cityRu || `${cityName}, Kazakhstan`;
 
     // Map AQI to severity
     const severity = this.mapAQIToSeverity(aqi);

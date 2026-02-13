@@ -145,11 +145,84 @@
 
 ---
 
+## 2026-02-13 (Continued - Almaty Integration Complete)
+
+### CRITICAL
+
+*No critical tasks.*
+
+### HIGH
+
+- [x] Fix air quality adapter API response parsing
+  - [x] Updated TypeScript interfaces for air.org.kz response format
+  - [x] Added support for `_avg` suffix field names
+  - [x] Added wrapper for `districts` array structure
+- [x] Create frontend map API route proxy
+  - [x] Created `app/api/v1/map/events/route.ts`
+  - [x] Forward query params to backend
+  - [x] Added caching and error handling
+- [ ] **Step 4: Frontend Integration** (Remaining tasks)
+  - [x] Map component working with 2GIS SDK
+  - [ ] Create specialized event widgets
+    - [ ] Create components/event/weather-widget.tsx (multi-day forecast, temperature chart)
+    - [ ] Create components/event/aqi-indicator.tsx (circular gauge, color-coded health warnings)
+    - [ ] Create components/event/outage-schedule.tsx (timeline display, affected addresses)
+    - [ ] Follow control room aesthetic from frontend-design-guidelines.md
+  - [ ] Update event card component
+    - [ ] Modify components/event/event-card.tsx
+    - [ ] Add conditional rendering for new event types
+    - [ ] Import and use specialized widgets
+  - [ ] Update filter bar
+    - [ ] Modify components/event/filter-bar.tsx
+    - [ ] Add icons for new event types (Cloud, Wind, Zap from Lucide)
+    - [ ] Test filter functionality
+  - [ ] Test responsive design
+    - [ ] Test on mobile (375px)
+    - [ ] Test on tablet (768px)
+    - [ ] Test on desktop (1280px+)
+    - [ ] Check accessibility (ARIA labels, keyboard navigation)
+
+### MEDIUM
+
+- [ ] **Step 5: Testing & Refinement**
+  - [x] End-to-end testing
+    - [x] Verify all adapters polling correctly
+    - [x] Check event creation and deduplication
+    - [ ] Test frontend display for all event types
+    - [ ] Verify filters work correctly
+  - [ ] Mock fallback testing
+    - [ ] Test mock data loading when APIs fail
+    - [ ] Verify auto-disable after 10 consecutive failures
+  - [ ] Performance validation
+    - [ ] Check database query performance
+    - [ ] Monitor Redis cache hit rates
+    - [ ] Verify polling intervals don't overlap
+  - [ ] Documentation updates
+    - [ ] Update README with new data sources
+    - [ ] Document environment variables (.env)
+    - [ ] Add examples for adding new sources
+
+### LOW
+
+- [x] Add environment variables to .env
+  - [x] ALMATY_LAT=43.2220 (added to seed script)
+  - [x] ALMATY_LNG=76.8512 (added to seed script)
+  - [x] ENABLE_MOCK_FALLBACK=true (mock loader checks env)
+- [ ] Update frontend-design-guidelines.md when adding new UI components
+- [ ] Consider adding database indexes if performance testing shows need
+  - [ ] idx_events_type_district_start
+  - [ ] idx_events_severity_status
+
+---
+
 ## 2026-02-13 (Database and Worker Fixes)
 
 ### CRITICAL
 
 - [x] Fix Postgres migration JSONB default value error
+- [x] Fix Telegram worker PostgreSQL operator error
+  - [x] Fix eventTypesFilter JSONB @> operator: ARRAY['*']::text → '["*"]'::jsonb
+  - [x] Fix districtFilter TEXT UNNEST() error: remove UNNEST, use simple text comparison
   - [x] Change ARRAY['*']::JSONB to '["*"]'::jsonb in migrations/001_initial.sql
 - [x] Add migration locking to prevent concurrent migrations
   - [x] Implement Postgres advisory locks in migrate.ts
@@ -196,6 +269,30 @@
 
 ---
 
+## 2026-02-13 (Darker Map UI Theme)
+
+### CRITICAL
+
+*No critical tasks.*
+
+### HIGH
+
+- [x] Implement darker color scheme for map page UI elements
+- [x] Update buttons to use darker background (#131825)
+- [x] Update filter panels to use darker background (#131825)
+- [x] Update Select component with dark theme colors
+- [x] Update frontend-design-guidelines.md with version history
+
+### MEDIUM
+
+*No medium priority tasks.*
+
+### LOW
+
+*No low priority tasks.*
+
+---
+
 ## 2026-02-13 (Almaty Data Source Integration)
 
 ### CRITICAL
@@ -204,60 +301,60 @@
 
 ### HIGH
 
-- [ ] **Step 1: Foundation (Backend)** - Mock data, Weather Adapter, Scheduler update, Seed script
-  - [ ] Create mock data directory and files
-    - [ ] Create backend/adapters/mocks/ directory
-    - [ ] Create weather-mock.json (Open Meteo sample response)
-    - [ ] Create air-quality-mock.json (air.org.kz sample response)
-    - [ ] Create energy-mock.json (AZhK sample data)
-    - [ ] Create mock-loader.ts utility
-  - [ ] Implement Weather Adapter (Open Meteo)
-    - [ ] Create backend/adapters/weather-adapter.ts
-    - [ ] Implement SourceAdapter interface (fetch + normalize methods)
-    - [ ] Map weather codes to severity levels
-    - [ ] Test with real API endpoint
-    - [ ] Test with mock data fallback
-  - [ ] Update scheduler to support weather adapter
-    - [ ] Modify backend/worker/scheduler.ts createAdapter() method
-    - [ ] Add case for 'weather' or 'json' type
-    - [ ] Test end-to-end ingestion
-  - [ ] Create seed script for Almaty sources
-    - [ ] Create backend/scripts/seed-almaty-sources.ts
-    - [ ] Add source records for weather, air quality, energy
-    - [ ] Run seed script to populate database
-- [ ] **Step 2: Air Quality Integration (Backend)**
-  - [ ] Review air.org.kz API documentation
-    - [ ] Identify Almaty-specific endpoints
-    - [ ] Test API manually (curl or browser)
-    - [ ] Document data structure and authentication requirements
-  - [ ] Implement Air Quality Adapter
-    - [ ] Create backend/adapters/air-quality-adapter.ts
-    - [ ] Implement SourceAdapter interface
-    - [ ] Map AQI values to severity (0-50: low, 51-100: medium, 101-150: high, 151+: critical)
-    - [ ] Extract station locations and district names
-    - [ ] Test with real API
-  - [ ] Update scheduler for air quality adapter
-    - [ ] Add case in createAdapter()
-    - [ ] Test end-to-end ingestion
-- [ ] **Step 3: Energy Outage Integration (Backend)**
-  - [ ] Analyze AZhK HTML structure
-    - [ ] Fetch sample HTML from https://www.azhk.kz/ru/spetsialnye-razdely/all-graphics
-    - [ ] Document table structure and CSS selectors
-    - [ ] Identify date formats and address patterns
-  - [ ] Implement Energy Adapter
-    - [ ] Create backend/adapters/energy-adapter.ts
-    - [ ] Implement Cheerio-based HTML table parsing
-    - [ ] Implement Russian date parsing (date-fns with ru locale)
-    - [ ] Extract addresses and store in locationName
-    - [ ] Generate separate events for each outage window
-    - [ ] Implement status logic (active for future, resolved for past)
-  - [ ] Update scheduler for energy adapter
-    - [ ] Add case in createAdapter() for 'html' type
+- [x] **Step 1: Foundation (Backend)** - Mock data, Weather Adapter, Scheduler update, Seed script
+  - [x] Create mock data directory and files
+    - [x] Create backend/adapters/mocks/ directory
+    - [x] Create weather-mock.json (Open Meteo sample response)
+    - [x] Create air-quality-mock.json (air.org.kz sample response)
+    - [x] Create energy-mock.json (AZhK sample data)
+    - [x] Create mock-loader.ts utility
+  - [x] Implement Weather Adapter (Open Meteo)
+    - [x] Create backend/adapters/weather-adapter.ts
+    - [x] Implement SourceAdapter interface (fetch + normalize methods)
+    - [x] Map weather codes to severity levels
+    - [x] Test with real API endpoint
+    - [x] Test with mock data fallback
+  - [x] Update scheduler to support weather adapter
+    - [x] Modify backend/worker/scheduler.ts createAdapter() method
+    - [x] Add case for 'weather' or 'json' type
+    - [x] Test end-to-end ingestion
+  - [x] Create seed script for Almaty sources
+    - [x] Create backend/scripts/seed-almaty-sources.ts
+    - [x] Add source records for weather, air quality, energy
+    - [x] Run seed script to populate database
+- [x] **Step 2: Air Quality Integration (Backend)**
+  - [x] Review air.org.kz API documentation
+    - [x] Identify Almaty-specific endpoints
+    - [x] Test API manually (curl or browser)
+    - [x] Document data structure and authentication requirements
+  - [x] Implement Air Quality Adapter
+    - [x] Create backend/adapters/air-quality-adapter.ts
+    - [x] Implement SourceAdapter interface
+    - [x] Map AQI values to severity (0-50: low, 51-100: medium, 101-150: high, 151+: critical)
+    - [x] Extract station locations and district names
+    - [x] Test with real API
+  - [x] Update scheduler for air quality adapter
+    - [x] Add case in createAdapter()
+    - [x] Test end-to-end ingestion
+- [x] **Step 3: Energy Outage Integration (Backend)**
+  - [x] Analyze AZhK HTML structure
+    - [x] Fetch sample HTML from https://www.azhk.kz/ru/spetsialnye-razdely/all-graphics
+    - [x] Document table structure and CSS selectors
+    - [x] Identify date formats and address patterns
+  - [x] Implement Energy Adapter
+    - [x] Create backend/adapters/energy-adapter.ts
+    - [x] Implement Cheerio-based HTML table parsing
+    - [x] Implement Russian date parsing (date-fns with ru locale)
+    - [x] Extract addresses and store in locationName
+    - [x] Generate separate events for each outage window
+    - [x] Implement status logic (active for future, resolved for past)
+  - [x] Update scheduler for energy adapter
+    - [x] Add case in createAdapter() for 'html' type
   - [ ] Extensive testing
-    - [ ] Test with real HTML
-    - [ ] Test with mock data
+    - [x] Test with real HTML
+    - [x] Test with mock data
     - [ ] Verify date parsing edge cases
-    - [ ] Check event deduplication
+    - [x] Check event deduplication
 
 ### MEDIUM
 
@@ -309,4 +406,40 @@
 - [ ] Consider adding database indexes if performance testing shows need
   - [ ] idx_events_type_district_start
   - [ ] idx_events_severity_status
+
+---
+
+## 2026-02-13 (Map Fix - 2GIS to MapLibre GL Migration)
+
+### CRITICAL
+
+*No critical tasks.*
+
+### HIGH
+
+- [x] Replace 2GIS Map SDK with MapLibre GL + OSM tiles
+  - [x] Updated components/map/map-view.tsx to use maplibre-gl
+  - [x] Removed API key dependency - uses free OSM raster tiles
+  - [x] Implemented severity-based marker icons
+  - [x] Added map popup with event details
+- [x] Integrate map into feed page with view toggle
+  - [x] Added ViewMode state ('list' | 'map') to app/feed/page.tsx
+  - [x] Created toggle buttons with List/Map icons
+  - [x] Embedded map in 600px container when map view selected
+- [ ] Test map and feed page integration
+
+### MEDIUM
+
+*No medium priority tasks.*
+
+### LOW
+
+- [ ] **Step 6: Add Kazakhstan Cities** (New task)
+  - [x] Research data sources for Astana, Kyzylorda, Shymkent
+  - [x] Create universal seed script for all cities
+  - [x] Create seed-astana-sources.ts
+  - [x] Create seed-shymkent-sources.ts
+  - [x] Create seed-kyzylorda-sources.ts
+  - [ ] Test weather data ingestion for all cities
+  - [ ] Update frontend city filter/component
 

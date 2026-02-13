@@ -397,6 +397,39 @@ card
 
 ---
 
+## Map Integration
+
+### 2GIS Map SDK
+
+AlertFlow uses **2GIS Map SDK** for the Almaty region, providing accurate local mapping with Kazakh street names and district boundaries.
+
+**API Configuration:**
+- API Key: `eb6f986c-4074-4a4d-b9c0-89f2575de50b`
+- Base URL: `https://maps.api.2gis.com/v1`
+- Default Center: `[76.8512, 43.2220]` (Almaty coordinates)
+
+**Implementation Details:**
+- SDK loaded dynamically via `<script>` tag with API key parameter
+- Markers use custom SVG icons based on event severity colors
+- Popup content displays event title, description, and detail link
+- Map auto-fits bounds to display all visible markers
+- Events without coordinates are skipped (future: geocoding via 2GIS Geocoding API)
+
+**Severity Marker Colors:**
+| Severity | Color | Hex |
+|----------|--------|-----|
+| Critical | Red | #D93A3A |
+| High | Orange | #F97316 |
+| Medium | Yellow | #F4A300 |
+| Low | Green | #22C55E |
+
+**Future Enhancements:**
+- 2GIS Geocoding API integration for address → coordinates conversion
+- District boundary overlays for visual filtering
+- Custom 2GIS tile style matching Control Room aesthetic
+
+---
+
 ## Version History
 
 | Date | Change | Author |
@@ -404,6 +437,8 @@ card
 | 2026-02-13 | Initial design system creation | Claude Code |
 | 2026-02-13 | Updated color palette with core brand, accent, severity, and neutral colors; added role mapping and usage constraints | Claude Code |
 | 2026-02-13 | **MAJOR UPDATE**: Redesigned entire frontend with Control Room aesthetic - dark theme, neon colors, glow effects, geometric fonts (Chakra Petch/Saira), hexagonal patterns, grid overlays, animations, staggered entrance effects | Claude Code |
+| 2026-02-13 | **MAP INTEGRATION**: Replaced MapLibre GL JS with 2GIS Map SDK for Almaty region; added map configuration, marker styling, and severity color mapping | Claude Code |
+| 2026-02-13 | **DARKER MAP UI**: Updated map page UI elements (buttons, filters, panels) to use darker surface color (#131825) for consistent dark theme; updated Select component with dark backgrounds and accent-colored borders | Claude Code |
 
 ---
 

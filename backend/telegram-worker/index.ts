@@ -50,20 +50,17 @@ async function main() {
             // '*' means all types, otherwise check if event type is in the list
             conditions.push(
               sql`(
-                ${schema.telegramSubscriptions.eventTypesFilter} @> ARRAY['*']::text
-                OR ${eventType} = ANY(subscription.event_types_filter)
+                ${schema.telegramSubscriptions.eventTypesFilter} @> '["*"]'::jsonb
+                OR ${schema.telegramSubscriptions.eventTypesFilter} @> ${JSON.stringify([eventType])}::jsonb
               )`
             );
 
             // Match district filter
-            // '*' means all districts, otherwise check for exact match or wildcard
+            // '*' means all districts, otherwise check for exact match
             conditions.push(
               sql`(
                 ${schema.telegramSubscriptions.districtFilter} = '*'
-                OR EXISTS (
-                  SELECT 1 FROM UNNEST(${schema.telegramSubscriptions.districtFilter}) AS t
-                  WHERE t = ${eventId}
-                )
+                OR ${schema.telegramSubscriptions.districtFilter} = ${eventId}
               )`
             );
 

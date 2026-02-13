@@ -11,7 +11,8 @@ export class MockDataLoader {
 
   constructor() {
     this.enabled = process.env.USE_MOCK_DATA === 'true' || process.env.ENABLE_MOCK_FALLBACK === 'true';
-    this.mocksDir = join(__dirname, 'mocks');
+    // mock-loader.ts is inside the mocks directory, so __dirname already points to mocks/
+    this.mocksDir = __dirname;
   }
 
   /**

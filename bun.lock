@@ -4,6 +4,7 @@
     "": {
       "name": "alertflow",
       "dependencies": {
+        "@2gis/mapgl": "^1.70.1",
         "@grammyjs/auto-retry": "^2.0.2",
         "@hono/zod-validator": "^0.4.2",
         "@radix-ui/react-select": "^2.2.6",
@@ -50,6 +51,8 @@
     "unrs-resolver",
   ],
   "packages": {
+    "@2gis/mapgl": ["@2gis/mapgl@1.70.1", "", { "dependencies": { "@types/geojson": "^7946.0.7" } }, "sha512-+Kh7dUEdMNu3Nd2MO8aHpa7lgq2No9z/qdzuHUgpxQqsxs3tTQd37vWCDruzl6BaDrO9hqL16Zurs5nculOFQg=="],
+
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw=="],

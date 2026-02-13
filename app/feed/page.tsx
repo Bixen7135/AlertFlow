@@ -6,12 +6,13 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { FilterBar } from '@/components/event/filter-bar';
 import { EventCard } from '@/components/event/event-card';
+import { MapView } from '@/components/map/map-view';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { getEvents, type EventsQuery } from '@/lib/api/events';
 import { useTranslations } from '@/lib/i18n/context';
 import type { EventListItem } from '@/lib/api/types';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Map as MapIcon, List } from 'lucide-react';
 
 /**
  * Events list component
@@ -113,12 +114,15 @@ function EventsSkeleton() {
   );
 }
 
+type ViewMode = 'list' | 'map';
+
 /**
  * Feed content component with search params
  */
 function FeedContent() {
   const searchParams = useSearchParams();
   const t = useTranslations();
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Build query from search params
   const query: EventsQuery = {
@@ -154,11 +158,43 @@ function FeedContent() {
       {/* Filters */}
       <FilterBar />
 
-      {/* Events list */}
-      <div className="mt-6">
-        <Suspense fallback={<EventsSkeleton />}>
-          <EventsList query={query} />
-        </Suspense>
+      {/* View toggle */}
+      <div className="mt-6 flex items-center gap-2 mb-4">
+        <Button
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          onClick={() => setViewMode('list')}
+          className={viewMode === 'list'
+            ? 'bg-[--color-primary] text-white border-[--color-primary]'
+            : 'bg-transparent border-[--color-border] text-[--color-text-secondary] hover:bg-[--color-border]'
+          }
+        >
+          <List className="w-4 h-4 mr-2" />
+          List View
+        </Button>
+        <Button
+          variant={viewMode === 'map' ? 'default' : 'outline'}
+          onClick={() => setViewMode('map')}
+          className={viewMode === 'map'
+            ? 'bg-[--color-primary] text-white border-[--color-primary]'
+            : 'bg-transparent border-[--color-border] text-[--color-text-secondary] hover:bg-[--color-border]'
+          }
+        >
+          <MapIcon className="w-4 h-4 mr-2" />
+          Map View
+        </Button>
+      </div>
+
+      {/* Events list or map */}
+      <div className="mt-2">
+        {viewMode === 'map' ? (
+          <div className="h-[600px] rounded-lg overflow-hidden border border-[--color-border]">
+            <MapView showFilters={false} />
+          </div>
+        ) : (
+          <Suspense fallback={<EventsSkeleton />}>
+            <EventsList query={query} />
+          </Suspense>
+        )}
       </div>
     </>
   );

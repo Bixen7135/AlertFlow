@@ -33,27 +33,25 @@ async function seedAlmatySources() {
 
     console.log(`✓ Created weather source: ${weatherSource[0].id}`);
 
-    // 2. Air Quality Source (air.org.kz) - Placeholder
-    // TODO: Implement after reviewing API documentation
-    /*
+    // 2. Air Quality Source (air.org.kz)
     const airQualitySource = await db.insert(schema.sources).values({
       name: 'Almaty Air Quality (air.org.kz)',
       type: 'json',
-      url: 'https://api.air.org.kz/v1/almaty/current', // Example URL - needs verification
+      url: 'https://api.air.org.kz/api/city/districts',
       pollingIntervalSeconds: 1800, // 30 minutes
-      enabled: false, // Disabled until adapter implemented
+      enabled: true,
       config: {
+        kind: 'air-quality',
         description: 'Air quality monitoring data for Almaty',
         location: 'Almaty, Kazakhstan',
+        endpoint: 'city/districts',
       },
     }).returning();
 
-    console.log(`✓ Created air quality source: ${airQualitySource[0].id} (disabled)`);
-    */
+    console.log(`✓ Created air quality source: ${airQualitySource[0].id}`);
 
     // 3. Energy Outage Source (AZhK) - Placeholder
     // TODO: Implement after HTML scraping adapter ready
-    /*
     const energySource = await db.insert(schema.sources).values({
       name: 'AZhK Energy Outages',
       type: 'html',
@@ -61,6 +59,7 @@ async function seedAlmatySources() {
       pollingIntervalSeconds: 21600, // 6 hours
       enabled: false, // Disabled until adapter implemented
       config: {
+        kind: 'energy',
         description: 'Planned energy outage schedules for Almaty',
         location: 'Almaty, Kazakhstan',
         locale: 'ru',
@@ -68,7 +67,6 @@ async function seedAlmatySources() {
     }).returning();
 
     console.log(`✓ Created energy source: ${energySource[0].id} (disabled)`);
-    */
 
     console.log('\n✓ Almaty sources seeded successfully!');
     console.log('\nNext steps:');

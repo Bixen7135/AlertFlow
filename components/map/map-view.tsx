@@ -1,20 +1,33 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMapEvents, type MapEventsQuery } from '@/lib/api/events';
 import { useTranslations } from '@/lib/i18n/context';
-import type { MapEventsResponse, MapEventFeature, EventType, Severity } from '@/lib/api/types';
+import type { MapEventFeature, EventType, Severity } from '@/lib/api/types';
 import { Filter, Loader2, AlertCircle, X } from 'lucide-react';
-import { clsx } from 'clsx';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+
+// MapLibre GL configuration
+const ALMATY_CENTER: [number, number] = [76.8512, 43.2220]; // [lng, lat]
+
+interface MapViewProps {
+  query?: MapEventsQuery;
+  onEventClick?: (eventId: string) => void;
+  showFilters?: boolean;
+}
 
 /**
- * Map view component with MapLibre GL JS
+ * MapLibre GL Map view component
+ * Uses free OpenStreetMap tiles - no API key required
+ * Displays event markers with severity-based colors
  */
-export function MapView() {
+export function MapView({ query, onEventClick, showFilters = true }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
   const t = useTranslations();
 
   const [typeFilter, setTypeFilter] = useState<EventType | 'all' | ''>('all');
@@ -23,61 +36,126 @@ export function MapView() {
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<MapEventFeature[]>([]);
 
-  // Initialize map
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  /**
+   * Create marker icon based on severity
+   */
+  const createSeverityIcon = useCallback((severity: Severity): string => {
+    const colors: Record<Severity, string> = {
+      critical: '#D93A3A',
+      high: '#F97316',
+      medium: '#F4A300',
+      low: '#22C55E',
+    };
 
-    async function initMap() {
-      try {
-        const maplibregl = await import('maplibre-gl');
-        const map = new maplibregl.Map({
-          container: mapContainerRef.current!,
-          style: 'https://demotiles.maplibre.org/style.json', // Free OSM tiles
-          center: [0, 0],
-          zoom: 1,
-        });
+    const color = colors[severity] || '#3FB7A7';
 
-        mapRef.current = map;
+    const svgString = `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" fill="${color}" stroke="white" stroke-width="2"/>
+        <circle cx="16" cy="16" r="5" fill="white"/>
+      </svg>`;
+    return `data:image/svg+xml,${encodeURIComponent(svgString)}`;
+  }, []);
 
-        // Add click handler for markers
-        map.on('click', 'event-marker', (e: any) => {
-          const features = e.features;
-          if (features && features.length > 0) {
-            const eventId = features[0].properties.id;
-            window.location.href = `/event/${eventId}`;
+  /**
+   * Create marker element with icon
+   */
+  const createMarkerElement = useCallback((severity: Severity): HTMLElement => {
+    const el = document.createElement('div');
+    el.className = 'map-marker';
+    el.style.width = '32px';
+    el.style.height = '32px';
+    el.style.cursor = 'pointer';
+    el.style.backgroundImage = `url(${createSeverityIcon(severity)})`;
+    el.style.backgroundSize = 'contain';
+    el.style.backgroundRepeat = 'no-repeat';
+    return el;
+  }, [createSeverityIcon]);
+
+  /**
+   * Fit map bounds to show all markers
+   */
+  const fitMapToMarkers = useCallback(() => {
+    const map = mapRef.current;
+
+    if (!map || markersRef.current.length === 0) return;
+
+    const bounds = new maplibregl.LngLatBounds();
+
+    markersRef.current.forEach(marker => {
+      const lngLat = marker.getLngLat();
+      bounds.extend(lngLat);
+    });
+
+    map.fitBounds(bounds, {
+      padding: { top: 50, bottom: 50, left: 50, right: 50 },
+    });
+  }, []);
+
+  /**
+   * Update map markers with events
+   */
+  const updateMapMarkers = useCallback(
+    (features: MapEventFeature[]) => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      // Remove existing markers
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+
+      features.forEach(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        if (!lng || !lat) return;
+
+        const severity = feature.properties.severity;
+        const markerElement = createMarkerElement(severity);
+
+        // Create popup
+        const popup = new maplibregl.Popup({ offset: 20, className: 'event-popup' })
+          .setHTML(`
+            <div class="p-3 min-w-[200px]">
+              <h3 class="font-semibold mb-1 text-sm">${feature.properties.title}</h3>
+              <p class="text-xs text-gray-600 mb-2">${feature.properties.description || ''}</p>
+              <a href="/event/${feature.properties.id}" class="text-blue-600 hover:underline text-xs font-medium">
+                View details &rarr;
+              </a>
+            </div>
+          `);
+
+        // Create marker
+        const marker = new maplibregl.Marker({
+          element: markerElement,
+          anchor: 'bottom',
+        })
+          .setLngLat([lng, lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        // Add click handler
+        markerElement.addEventListener('click', () => {
+          if (onEventClick) {
+            onEventClick(feature.properties.id);
           }
         });
 
-        // Load events
-        await loadEvents();
+        markersRef.current.push(marker);
+      });
 
-        // Fit map to event bounds if events exist
-        if (events.length > 0) {
-          const bounds = calculateBounds(events);
-          map.fitBounds(bounds, { padding: 50 });
-        }
-      } catch (err) {
-        console.error('Failed to initialize map:', err);
-        setError(t.map.error);
-        setLoading(false);
+      if (markersRef.current.length > 0) {
+        fitMapToMarkers();
       }
-    }
+    },
+    [createMarkerElement, fitMapToMarkers, onEventClick]
+  );
 
-    initMap();
+  /**
+   * Load events and update map markers
+   */
+  const loadEvents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-      }
-    };
-  }, []);
-
-  // Load events and update map markers
-  async function loadEvents() {
     try {
-      setLoading(true);
-      setError(null);
-
       const query: MapEventsQuery = {
         type: typeFilter && typeFilter !== 'all' ? typeFilter : undefined,
         severity: severityFilter && severityFilter !== 'all' ? severityFilter : undefined,
@@ -85,100 +163,83 @@ export function MapView() {
 
       const result = await getMapEvents(query);
       setEvents(result.features);
-
-      // Update map markers
-      if (mapRef.current) {
-        updateMapMarkers(result.features);
-      }
-    } catch (err) {
+      updateMapMarkers(result.features);
+    } catch (err: unknown) {
       console.error('Failed to load map events:', err);
-      setError(t.map.error);
+      setError(t.map?.error || 'Failed to load map');
     } finally {
       setLoading(false);
     }
-  }
+  }, [typeFilter, severityFilter, updateMapMarkers, t.map?.error]);
 
-  // Update map markers with events
-  function updateMapMarkers(features: MapEventFeature[]) {
-    if (!mapRef.current) return;
+  /**
+   * Initialize MapLibre GL map
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-    const map = mapRef.current;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    // Remove existing markers
-    if (map.getSource('event-marker')) {
-      map.removeSource('event-marker');
+    let destroyed = false;
+
+    // Initialize map
+    try {
+      const map = new maplibregl.Map({
+        container,
+        style: 'https://demotiles.maplibre.org/maputiro/styles/osm-bright/style.json',
+        center: ALMATY_CENTER,
+        zoom: 11,
+        attributionControl: false,
+      });
+
+      mapRef.current = map;
+
+      // Add custom CSS for map container
+      container.style.background = '#131825';
+
+      // Wait for map to load before loading events
+      map.on('load', () => {
+        if (!destroyed) {
+          loadEvents();
+        }
+      });
+
+      map.on('error', (e) => {
+        console.error('Map error:', e);
+        if (!destroyed) {
+          setError('Map failed to load');
+          setLoading(false);
+        }
+      });
+    } catch (err: unknown) {
+      console.error('Failed to init MapLibre GL:', err);
+      setError('Map failed to initialize');
+      setLoading(false);
     }
 
-    // Add new markers
-    map.addSource({
-      id: 'event-marker',
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: features.map((f) => ({
-          ...f,
-          properties: {
-            ...f.properties,
-            severity: f.properties.severity,
-          },
-        })),
-      },
-    });
+    return () => {
+      destroyed = true;
 
-    // Add circle layer for markers
-    map.addLayer({
-      id: 'event-marker-circles',
-      type: 'circle',
-      source: 'event-marker',
-      paint: {
-        'circle-radius': 8,
-        'circle-color': [
-          'match',
-          ['get', 'severity'],
-          'critical', '#D93A3A',
-          'high', '#F97316',
-          'medium', '#F4A300',
-          'low', '#22C55E',
-          '#3FB7A7',
-        ],
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
-      },
-    });
+      // Remove markers
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
 
-    // Add click interaction
-    map.on('mouseenter', 'event-marker-circles', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
+      // Remove map
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []); // Only run once on mount
 
-    map.on('mouseleave', 'event-marker-circles', () => {
-      map.getCanvas().style.cursor = '';
-    });
-  }
-
-  // Calculate bounds from features
-  function calculateBounds(features: MapEventFeature[]): [[number, number], [number, number]] {
-    if (features.length === 0) {
-      return [[-180, -90], [180, 90]];
+  // Reload events when filters change
+  useEffect(() => {
+    if (mapRef.current) {
+      loadEvents();
     }
+  }, [typeFilter, severityFilter, loadEvents]); // Only depend on filters
 
-    let minLng = Infinity;
-    let minLat = Infinity;
-    let maxLng = -Infinity;
-    let maxLat = -Infinity;
-
-    features.forEach((f) => {
-      const [lng, lat] = f.geometry.coordinates;
-      minLng = Math.min(minLng, lng);
-      minLat = Math.min(minLat, lat);
-      maxLng = Math.max(maxLng, lng);
-      maxLat = Math.max(maxLat, lat);
-    });
-
-    return [[minLng, minLat], [maxLng, maxLat]];
-  }
-
-  // Handle filter changes
   function handleTypeFilterChange(value: string) {
     setTypeFilter(value as EventType | 'all' | '');
   }
@@ -187,105 +248,98 @@ export function MapView() {
     setSeverityFilter(value as Severity | 'all' | '');
   }
 
-  // Clear filters
   function clearFilters() {
     setTypeFilter('all');
     setSeverityFilter('all');
     loadEvents();
   }
 
-  // Check if any filters are active
-  const hasFilters = Boolean(typeFilter && typeFilter !== 'all') || Boolean(severityFilter && severityFilter !== 'all');
+  const hasFilters =
+    Boolean(typeFilter && typeFilter !== 'all') || Boolean(severityFilter && severityFilter !== 'all');
 
   return (
-    <div className="relative h-full w-full">
-      {/* Map container */}
-      <div ref={mapContainerRef} className="absolute inset-0" />
+    <div className="relative h-full w-full bg-[#131825] p-4">
+      <div ref={mapContainerRef} className="absolute inset-0 rounded-lg overflow-hidden" />
 
-      {/* Loading overlay */}
       {loading && (
-        <div className="absolute top-4 left-4 z-10 bg-[--color-bg-surface] rounded-lg shadow-md p-4">
+        <div className="absolute top-4 left-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4">
           <div className="flex items-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-[--color-primary]" />
-            <span className="text-sm">{t.map.loading}</span>
+            <Loader2 className="w-5 h-5 animate-spin text-[#00D9FF]" />
+            <span className="text-sm text-[#E8EDF4]">{t.map?.loading || 'Loading...'}</span>
           </div>
         </div>
       )}
 
-      {/* Error overlay */}
       {error && (
-        <div className="absolute top-4 left-4 right-4 z-10 bg-[--color-bg-surface] rounded-lg shadow-md p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-[--color-critical] flex-shrink-0" />
+        <div className="absolute top-4 left-4 right-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-[#FF2E63] shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-[--color-text-secondary] mb-2">{error}</p>
-            <Button onClick={loadEvents} size="sm" variant="outline">
-              {t.map.retry}
+            <p className="text-sm text-[#E8EDF4] mb-2">{error}</p>
+            <Button onClick={() => loadEvents()} size="sm" variant="outline" className="bg-[#131825] border-[#00D9FF] text-[#00D9FF] hover:bg-[#00D9FF]/10">
+              {t.map?.retry || 'Retry'}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Filter panel */}
-      <div className="absolute top-4 right-4 z-10 bg-[--color-bg-surface] rounded-lg shadow-md p-4 w-64">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[--color-text-secondary]" />
-            <h3 className="font-semibold text-sm">{t.filters.title}</h3>
+      {showFilters && (
+        <div className="absolute top-4 right-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4 w-64">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-[#E8EDF4]" />
+              <h3 className="font-semibold text-sm text-[#E8EDF4]">{t.filters?.title || 'Filters'}</h3>
+            </div>
+            {hasFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="h-8 w-8 p-0 bg-[#131825] border-[#374151] text-[#E8EDF4] hover:bg-[#374151]"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
           </div>
-          {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-8 w-8 p-0"
-            >
-              <X className="w-4 h-4" />
+
+          <div className="space-y-3">
+            <Select value={typeFilter || 'all'} onValueChange={handleTypeFilterChange}>
+              <SelectTrigger className="w-full border-[#374151] bg-[#131825] text-[#E8EDF4] data-[placeholder]:text-[#9CA3AF]">
+                <SelectValue placeholder={t.filters?.type || 'Type'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.filters?.all || 'All'}</SelectItem>
+                <SelectItem value="weather">{t.eventTypes?.weather || 'Weather'}</SelectItem>
+                <SelectItem value="traffic">{t.eventTypes?.traffic || 'Traffic'}</SelectItem>
+                <SelectItem value="public_safety">{t.eventTypes?.public_safety || 'Public Safety'}</SelectItem>
+                <SelectItem value="health">{t.eventTypes?.health || 'Health'}</SelectItem>
+                <SelectItem value="utility">{t.eventTypes?.utility || 'Utility'}</SelectItem>
+                <SelectItem value="other">{t.eventTypes?.other || 'Other'}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={severityFilter || 'all'} onValueChange={handleSeverityFilterChange}>
+              <SelectTrigger className="w-full border-[#374151] bg-[#131825] text-[#E8EDF4] data-[placeholder]:text-[#9CA3AF]">
+                <SelectValue placeholder={t.filters?.severity || 'Severity'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.filters?.all || 'All'}</SelectItem>
+                <SelectItem value="low">{t.severities?.low || 'Low'}</SelectItem>
+                <SelectItem value="medium">{t.severities?.medium || 'Medium'}</SelectItem>
+                <SelectItem value="high">{t.severities?.high || 'High'}</SelectItem>
+                <SelectItem value="critical">{t.severities?.critical || 'Critical'}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button onClick={() => loadEvents()} className="w-full bg-[#131825] border border-[#00D9FF] text-[#00D9FF] hover:bg-[#00D9FF]/10">
+              {t.filters?.apply || 'Apply'}
             </Button>
-          )}
+          </div>
         </div>
+      )}
 
-        <div className="space-y-3">
-          {/* Type filter */}
-          <Select value={typeFilter || 'all'} onValueChange={handleTypeFilterChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t.filters.type} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.filters.all}</SelectItem>
-              <SelectItem value="weather">{t.eventTypes.weather}</SelectItem>
-              <SelectItem value="traffic">{t.eventTypes.traffic}</SelectItem>
-              <SelectItem value="public_safety">{t.eventTypes.public_safety}</SelectItem>
-              <SelectItem value="health">{t.eventTypes.health}</SelectItem>
-              <SelectItem value="utility">{t.eventTypes.utility}</SelectItem>
-              <SelectItem value="other">{t.eventTypes.other}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Severity filter */}
-          <Select value={severityFilter || 'all'} onValueChange={handleSeverityFilterChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t.filters.severity} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.filters.all}</SelectItem>
-              <SelectItem value="low">{t.severities.low}</SelectItem>
-              <SelectItem value="medium">{t.severities.medium}</SelectItem>
-              <SelectItem value="high">{t.severities.high}</SelectItem>
-              <SelectItem value="critical">{t.severities.critical}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Apply button */}
-          <Button onClick={loadEvents} className="w-full">
-            {t.filters.apply}
-          </Button>
-        </div>
-      </div>
-
-      {/* Event count */}
       {!loading && !error && (
-        <div className="absolute bottom-4 left-4 z-10 bg-[--color-bg-surface] rounded-lg shadow-md px-3 py-2">
-          <p className="text-sm text-[--color-text-secondary]">
+        <div className="absolute bottom-4 left-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md px-3 py-2">
+          <p className="text-sm text-[#E8EDF4]">
             {events.length} {events.length === 1 ? 'event' : 'events'} displayed
           </p>
         </div>

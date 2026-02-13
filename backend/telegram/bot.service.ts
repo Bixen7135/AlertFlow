@@ -1,5 +1,6 @@
 import { Bot, GrammyError } from 'grammy';
 import { autoRetry } from '@grammyjs/auto-retry';
+import { eq } from 'drizzle-orm';
 import { getDb, schema } from '../lib/db';
 
 interface SubscriptionFilters {
@@ -23,15 +24,14 @@ export class TelegramBotService {
 
     this.adminKey = process.env.ADMIN_KEY || 'D9O0Gk8SK2MFyYAR9HCu6VGd';
 
-    // Initialize bot with auto-retry
-    this.bot = new Bot(token, {
-      client: {
-        autoRetry: autoRetry({
-          maxRetryAttempts: 3,
-          maxDelaySeconds: 60,
-        }),
-      },
-    });
+    // Initialize bot
+    this.bot = new Bot(token);
+
+    // Configure auto-retry for API calls
+    this.bot.api.config.use(autoRetry({
+      maxRetryAttempts: 3,
+      maxDelaySeconds: 60,
+    }));
 
     this.setupCommands();
     this.setupMiddleware();
@@ -136,8 +136,8 @@ export class TelegramBotService {
       }
 
       const filterText = this.formatFilters({
-        eventTypes: subscription.eventTypesFilter,
-        district: subscription.districtFilter,
+        eventTypes: subscription.eventTypesFilter || ['*'],
+        district: subscription.districtFilter || '*',
       });
 
       await ctx.reply(

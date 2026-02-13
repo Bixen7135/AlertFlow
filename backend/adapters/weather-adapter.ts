@@ -127,8 +127,13 @@ export class WeatherAdapter implements SourceAdapter {
     const temperatureMax = (raw as any).temperature_max;
     const temperatureMin = (raw as any).temperature_min;
     const precipitation = (raw as any).precipitation ?? 0;
-    const latitude = (raw as any).latitude ?? 43.2220; // Almaty default
+    const latitude = (raw as any).latitude ?? 43.2220;
     const longitude = (raw as any).longitude ?? 76.8512;
+
+    // Get city name from config (default to Almaty for backward compatibility)
+    const config = this.config || {};
+    const cityName = config.cityEn || config.city || 'Almaty';
+    const locationName = config.location || config.cityRu || `${cityName}, Kazakhstan`;
 
     // Map weather code to condition and severity
     const condition = this.mapWeathercodeToCondition(weathercode);
@@ -136,7 +141,7 @@ export class WeatherAdapter implements SourceAdapter {
 
     // Build title
     const title = isCurrent
-      ? `${condition} in Almaty`
+      ? `${condition} in ${cityName}`
       : `${condition} forecast for ${this.formatDate(time)}`;
 
     // Build description
@@ -165,7 +170,7 @@ export class WeatherAdapter implements SourceAdapter {
       status: 'active',
       startTime,
       endTime,
-      locationName: 'Almaty',
+      locationName,
       latitude,
       longitude,
       originalData: { ...raw, _fetchedAt: new Date().toISOString() },

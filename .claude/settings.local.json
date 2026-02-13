@@ -11,7 +11,8 @@
       "Bash(taskkill:*)",
       "Bash(bun run migrate:*)",
       "Bash(docker-compose:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(dir:*)"
     ]
   }
 }
