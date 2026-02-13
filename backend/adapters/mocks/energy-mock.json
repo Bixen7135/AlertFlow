@@ -1,0 +1,76 @@
+{
+  "source": "AZhK Almaty",
+  "fetch_time": "2026-02-13T14:00:00Z",
+  "outages": [
+    {
+      "id": "azhk_20260214_001",
+      "address": "мкр. Аксай-1, дома 1-15",
+      "district": "Nauryzbay",
+      "start_time": "2026-02-14T09:00:00+06:00",
+      "end_time": "2026-02-14T17:00:00+06:00",
+      "reason": "Плановые ремонтные работы на подстанции",
+      "type": "planned",
+      "affected_count": "~500 квартир"
+    },
+    {
+      "id": "azhk_20260214_002",
+      "address": "ул. Толе би, 123-145",
+      "district": "Almaly",
+      "start_time": "2026-02-14T10:00:00+06:00",
+      "end_time": "2026-02-14T16:00:00+06:00",
+      "reason": "Замена трансформатора",
+      "type": "planned",
+      "affected_count": "~300 квартир"
+    },
+    {
+      "id": "azhk_20260215_001",
+      "address": "мкр. Жетысу-1, дома 20-35",
+      "district": "Turksib",
+      "start_time": "2026-02-15T08:00:00+06:00",
+      "end_time": "2026-02-15T18:00:00+06:00",
+      "reason": "Ремонт кабельной линии",
+      "type": "planned",
+      "affected_count": "~700 квартир"
+    },
+    {
+      "id": "azhk_20260216_001",
+      "address": "пр. Достык, 200-250",
+      "district": "Medeu",
+      "start_time": "2026-02-16T09:00:00+06:00",
+      "end_time": "2026-02-16T15:00:00+06:00",
+      "reason": "Профилактические работы",
+      "type": "planned",
+      "affected_count": "~400 квартир"
+    },
+    {
+      "id": "azhk_20260217_001",
+      "address": "ул. Сатпаева, 50-80",
+      "district": "Bostandyk",
+      "start_time": "2026-02-17T11:00:00+06:00",
+      "end_time": "2026-02-17T17:00:00+06:00",
+      "reason": "Модернизация оборудования",
+      "type": "planned",
+      "affected_count": "~600 квартир"
+    },
+    {
+      "id": "azhk_20260218_001",
+      "address": "мкр. Самал-2, дома 40-55",
+      "district": "Medeu",
+      "start_time": "2026-02-18T10:00:00+06:00",
+      "end_time": "2026-02-18T16:00:00+06:00",
+      "reason": "Плановое обслуживание сети",
+      "type": "planned",
+      "affected_count": "~350 квартир"
+    },
+    {
+      "id": "azhk_20260219_001",
+      "address": "ул. Абая, 100-150",
+      "district": "Almaly",
+      "start_time": "2026-02-19T09:00:00+06:00",
+      "end_time": "2026-02-19T14:00:00+06:00",
+      "reason": "Техническое обслуживание",
+      "type": "planned",
+      "affected_count": "~450 квартир"
+    }
+  ]
+}

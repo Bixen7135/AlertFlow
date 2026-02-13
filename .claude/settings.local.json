@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bunx shadcn@latest init:*)",
+      "Bash(bunx shadcn@latest add:*)",
+      "Bash(bun install:*)",
+      "Bash(bun run dev)",
+      "Bash(bun run api)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(bun run migrate:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker compose:*)"
+    ]
+  }
+}

@@ -1,26 +1,247 @@
 @import "tailwindcss";
 
+/* Design Tokens from frontend-design-guidelines.md */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Control Room Theme - Dark Mode */
+
+  /* Core Brand Colors - Electric Blue Accent */
+  --color-primary: #00D9FF;
+  --color-primary-hover: #00B8D4;
+  --color-primary-active: #0097A7;
+  --color-primary-glow: rgba(0, 217, 255, 0.4);
+
+  /* Accent Colors */
+  --color-info: #00E5FF;
+  --color-success: #00FF9F;
+  --color-success-glow: rgba(0, 255, 159, 0.3);
+
+  /* Severity Colors - Neon Palette */
+  --color-warning: #FFB800;
+  --color-warning-glow: rgba(255, 184, 0, 0.35);
+  --color-critical: #FF2E63;
+  --color-critical-glow: rgba(255, 46, 99, 0.4);
+
+  /* Dark Backgrounds */
+  --color-bg-primary: #0A0E1A;
+  --color-bg-surface: #131825;
+  --color-bg-elevated: #1A1F2E;
+
+  /* Text Colors */
+  --color-text-primary: #E8EDF4;
+  --color-text-secondary: #9CA3AF;
+  --color-text-muted: #6B7280;
+
+  /* Borders & Dividers */
+  --color-border: #1F2937;
+  --color-border-bright: #374151;
+
+  /* Spacing Scale */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows - Enhanced with glows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.6);
+
+  /* Glow Effects */
+  --glow-primary: 0 0 20px var(--color-primary-glow);
+  --glow-success: 0 0 20px var(--color-success-glow);
+  --glow-warning: 0 0 20px var(--color-warning-glow);
+  --glow-critical: 0 0 30px var(--color-critical-glow), 0 0 50px var(--color-critical-glow);
+
+  /* Typography Scale */
+  --text-display-xl: 48px;
+  --text-display-lg: 36px;
+  --text-display-md: 30px;
+  --text-heading-xl: 24px;
+  --text-heading-lg: 20px;
+  --text-heading-md: 18px;
+  --text-body-lg: 16px;
+  --text-body-md: 14px;
+  --text-body-sm: 12px;
+
+  /* Responsive Breakpoints */
+  --bp-mobile: 320px;
+  --bp-tablet: 768px;
+  --bp-desktop: 1024px;
+  --bp-wide: 1280px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* shadcn/ui theme tokens - Dark Control Room */
+  --background: var(--color-bg-primary);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-surface);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-elevated);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-primary);
+  --primary-foreground: #0A0E1A;
+  --secondary: #1F2937;
+  --secondary-foreground: var(--color-text-primary);
+  --muted: #1F2937;
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--color-primary);
+  --accent-foreground: #0A0E1A;
+  --destructive: var(--color-critical);
+  --destructive-foreground: #E8EDF4;
+  --border: var(--color-border);
+  --input: var(--color-border-bright);
+  --ring: var(--color-primary);
+  --radius: var(--radius-md);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--color-border);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: var(--color-bg-primary);
+  background-image:
+    linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-attachment: fixed;
+  color: var(--color-text-primary);
+  font-size: var(--text-body-lg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display typography uses Chakra Petch */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* Accessibility: Focus visible */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Control Room Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: var(--glow-critical);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 40px var(--color-critical-glow), 0 0 70px var(--color-critical-glow);
+    opacity: 0.9;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Utility classes */
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.stagger-1 {
+  animation-delay: 0.1s;
+}
+
+.stagger-2 {
+  animation-delay: 0.2s;
+}
+
+.stagger-3 {
+  animation-delay: 0.3s;
+}
+
+.stagger-4 {
+  animation-delay: 0.4s;
+}
+
+.stagger-5 {
+  animation-delay: 0.5s;
+}
+
+/* Hexagonal clip path for badges */
+.hex-badge {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+}
+
+/* Grid overlay effect */
+.grid-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 217, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+/* Accessibility: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-pulse-glow,
+  .animate-fade-in-up {
+    animation: none !important;
+  }
 }

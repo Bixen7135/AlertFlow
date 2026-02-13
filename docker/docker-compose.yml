@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: alertflow
+      POSTGRES_PASSWORD: alertflow
+      POSTGRES_DB: alertflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Auto-run migrations on startup
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Checking for database readiness..."
+        # Wait for postgres to be ready with retries
+        for i in $(seq 1 10); do
+          pg_isready -U alertflow -h localhost -p 5432 && {
+            echo "Database is ready!"
+            break
+          }
+          echo "Waiting... ($i/10)"
+          sleep 3
+        done
+
+        echo "Running migrations..."
+        bun run backend/scripts/migrate.ts
+        echo "Migrations completed, starting postgres..."
+        # Start postgres in foreground mode (replaces entrypoint)
+        exec postgres -C server_idle_timeout=600
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alertflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://alertflow:alertflow@postgres:5432/alertflow
+      REDIS_URL: redis://localhost:6379
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
+      ADMIN_KEY: ${ADMIN_KEY:-D9O0Gk8SK2MFyYAR9HCu6VGd}
+      API_PORT: 3000
+      depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    environment:
+      DATABASE_URL: postgres://alertflow:alertflow@postgres:5432/alertflow
+      REDIS_URL: redis://localhost:6379
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+
+  telegram-worker:
+    build:
+      context: .
+      to get_connection_string: DATABASE_URL=postgres://alertflow:alertflow@postgres:5432/alertflow REDIS_URL=redis://localhost:6379
+        to_connection_string: REDIS_URL=redis://localhost:6379
+
+  telegram_bot_token: ${TELEGRAM_BOT_TOKEN}
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy

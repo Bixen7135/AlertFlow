@@ -1,0 +1,58 @@
+# AlertFlow Frontend (Next.js)
+# Multi-stage build for optimized production image
+
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Install dependencies only when needed
+FROM base AS deps
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
+
+# Build stage
+FROM base AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application source
+COPY app ./app
+COPY components ./components
+COPY lib ./lib
+COPY public ./public
+COPY src ./src
+COPY *.config.* ./
+COPY *.json ./
+
+# Set environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Build Next.js application
+RUN bun run build
+
+# Production image
+FROM base AS production
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME=0.0.0.0
+
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy necessary files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Set non-root user
+USER bun
+
+# Expose Next.js port
+EXPOSE 3000
+
+# Run Next.js server
+CMD ["bun", "run", "server.js"]
