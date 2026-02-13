@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { useTranslations } from '@/lib/i18n/context';
 import type { EventType, Severity, EventStatus } from '@/lib/api/types';
 import { Filter, X } from 'lucide-react';
@@ -138,13 +137,25 @@ export function FilterBar({ totalCount }: FilterBarProps) {
         </Select>
 
         {/* District filter */}
-        <div className="flex-1 min-w-[200px]">
-          <Input
-            placeholder={t.filters.district}
-            value={district || ''}
-            onChange={(e) => updateFilter('district', e.target.value || null)}
-          />
-        </div>
+        <Select
+          value={district || 'all'}
+          onValueChange={(value) => updateFilter('district', value === 'all' ? null : value)}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder={t.filters.district} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.filters.all}</SelectItem>
+            <SelectItem value="Almaly">{t.districts.almaly}</SelectItem>
+            <SelectItem value="Auezov">{t.districts.auezov}</SelectItem>
+            <SelectItem value="Bostandyk">{t.districts.bostandyk}</SelectItem>
+            <SelectItem value="Jetysu">{t.districts.jetysu}</SelectItem>
+            <SelectItem value="Medeu">{t.districts.medeu}</SelectItem>
+            <SelectItem value="Nauryzbay">{t.districts.nauryzbay}</SelectItem>
+            <SelectItem value="Turksib">{t.districts.turksib}</SelectItem>
+            <SelectItem value="Alatau">{t.districts.alatau}</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Results count */}
         {totalCount !== undefined && (

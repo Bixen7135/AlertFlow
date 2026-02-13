@@ -780,4 +780,79 @@ EOF
   - seed:kyzylorda - Run Kyzylorda seed
   - seed:cities - Run all cities at once
 - Updated TODO.md with new Step 6 tasks
+
+**[Current Time]** Research: Available data sources for Kazakhstan cities:
+- **Weather (Open Meteo)**: ALL cities supported (works worldwide with coordinates)
+  - Almaty, Astana, Shymkent, Kyzylorda ✅
+  - Any other Kazakhstan city with coordinates ✅
+- **Air Quality (air.org.kz)**: Only Almaty
+  - API appears Almaty-only (station data for Almaty districts)
+  - No other cities currently supported ❌
+- **Electricity Outages**: Multiple energy companies with different websites:
+  - **Almaty**: AZhK (azhk.kz) ✅ Already implemented
+  - **Astana**: АО «АРЭК» (arek.kz), "Энергосистема" (energosystema.kz/plannedShutdown)
+  - **Shymkent**: "Энергосистема" (energosystema.kz/plannedShutdown), "Оңтүстік Жарық Транзит"
+  - **Kyzylorda**: "Энергосистема" (energosystema.kz/plannedShutdown)
+- Sources discovered:
+  - https://www.arek.kz - Astana energy company
+  - https://energosystema.kz/plannedShutdown - Planned shutdowns for multiple cities
+  - Dispatch contact: 21-14-42, 22-24-52 (8:00-20:00)
 EOF
+
+**[Current Time]** Fixed MapLibre GL map tile loading issue (NS_BINDING_ABORTED):
+- Root cause: Circular dependency in useEffect causing constant re-renders and tile request cancellation
+- Removed loadEvents from useEffect dependency array (line 260)
+- Added map initialization guard in loadEvents callback
+- Added duplicate map initialization prevention check
+- Tile requests no longer being aborted, map should load correctly now
+
+**[Current Time]** Replaced MapLibre GL with Leaflet for better map reliability:
+- Switched from maplibre-gl to leaflet library
+- Changed tile provider to CartoDB Voyager (free, reliable, no API key needed)
+- CartoDB has better global coverage and reliability
+- Implemented custom severity-based marker icons with Leaflet DivIcon
+- Fixed z-index issues (overlays now use z-[1000])
+- Map should now load tiles reliably without NS_BINDING_ABORTED errors
+- Coordinates: Almaty (43.2220, 76.8512)
+
+**[Current Time]** Fixed Leaflet SSR error (window is not defined):
+- Added dynamic import with ssr: false for MapView component
+- Updated app/feed/page.tsx to use Next.js dynamic import
+- Updated app/map/page.tsx to use Next.js dynamic import
+- Added loading spinner while map component loads
+- Prevents server-side rendering of Leaflet (browser-only library)
+- Map now loads correctly without SSR errors
+
+**[2026-02-13]** Changed district filter from text input to dropdown with available districts:
+- Added districts translations (en, ru, kk) for all 8 Almaty districts
+- Updated FilterBar component: replaced Input with Select for district filter
+- Districts available: Almaly, Auezov, Bostandyk, Jetysu, Medeu, Nauryzbay, Turksib, Alatau
+- Removed unused Input import from filter-bar.tsx
+- Each district name is now properly translated in all three languages
+
+---
+
+## 2026-02-13 (Almaty Test Events - Map Markers)
+
+**[Current Time]** Created seed script for Almaty test events:
+- Created backend/scripts/seed-almaty-test-events.ts
+- Added 10 test events with real coordinates for popular Almaty locations:
+  1. Парк Горького (Concert) - 43.2612, 76.9571
+  2. MEGA Alma-Ata (Sale) - 43.2006, 76.8692
+  3. Площадь Республики (Traffic) - 43.2566, 76.9286
+  4. Медео (Weather Warning) - 43.1639, 77.0797
+  5. Шымбулак (Ski Conditions) - 43.1289, 77.0792
+  6. Достык Плаза (Utility) - 43.2400, 76.9456
+  7. Арбат/Жибек Жолы (Festival) - 43.2567, 76.9484
+  8. Аэропорт Алматы (Flight Delays) - 43.3521, 77.0405
+  9. Almaty Tower (Observation Deck) - 43.2324, 76.9634
+  10. Центральный стадион (Football Match) - 43.2383, 76.9448
+
+**[Current Time]** Fixed PostgreSQL authentication and ran seed script:
+- Recreated Docker volumes to reset database
+- Fixed PostgreSQL password for user 'alertflow'
+- Copied seed script to Docker container: alertflow-api-1:/app/backend/scripts/
+- Successfully executed seed script inside container
+- All 10 test events created successfully
+- Events now visible on map at http://localhost:3000/map
+- Map API endpoint returning GeoJSON: http://localhost:3001/api/v1/map/events

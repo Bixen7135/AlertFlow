@@ -19,9 +19,9 @@ export interface LanguageInfo {
  * Available languages
  */
 export const LANGUAGES: readonly LanguageInfo[] = [
-  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷u' },
-  { code: 'kk', name: 'Kazakh', nativeName: 'Қазақша', flag: '🇰🇿' },
+  { code: 'en', name: 'English', nativeName: 'English', flag: 'EN' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: 'RU' },
+  { code: 'kk', name: 'Kazakh', nativeName: 'Қазақша', flag: 'KZ' },
 ] as const;
 
 /**

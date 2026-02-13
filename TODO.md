@@ -434,12 +434,78 @@
 
 ### LOW
 
-- [ ] **Step 6: Add Kazakhstan Cities** (New task)
+- [x] **Step 6: Add Kazakhstan Cities** (Research Complete)
   - [x] Research data sources for Astana, Kyzylorda, Shymkent
   - [x] Create universal seed script for all cities
   - [x] Create seed-astana-sources.ts
   - [x] Create seed-shymkent-sources.ts
   - [x] Create seed-kyzylorda-sources.ts
+  - [x] Document available data sources for all cities
   - [ ] Test weather data ingestion for all cities
+  - [ ] Implement electricity adapters for Astana/Shymkent/Kyzylorda
+    - [ ] Research "Энергосистема" HTML structure for planned shutdowns
+    - [ ] Create adapter for arek.kz (Astana)
+    - [ ] Test and validate electricity data parsing
   - [ ] Update frontend city filter/component
 
+---
+
+## 2026-02-13 (Data Sources Research Summary)
+
+### Available Data Sources by City
+
+| City | Weather | Air Quality | Electricity |
+|------|---------|-------------|--------------|
+| Almaty | ✅ Open Meteo | ✅ air.org.kz | ✅ AZhK (azhk.kz) |
+| Astana | ✅ Open Meteo | ❌ Not available | ⚠️ arek.kz, energosystema.kz |
+| Shymkent | ✅ Open Meteo | ❌ Not available | ⚠️ energosystema.kz |
+| Kyzylorda | ✅ Open Meteo | ❌ Not available | ⚠️ energosystema.kz |
+
+### Key Findings:
+- **Weather**: Open Meteo API works for ANY city with coordinates
+- **Air Quality**: air.org.kz appears Almaty-only (no API for other cities)
+- **Electricity**: Different energy companies serve different regions
+  - "Энергосистема" (energosystema.kz/plannedShutdown) covers multiple cities
+  - Each city may have its own local utility company website
+
+
+## 2026-02-13 (Map Tile Loading Fix)
+
+### CRITICAL
+
+- [x] Fix MapLibre GL map tile loading (NS_BINDING_ABORTED error)
+  - [x] Removed circular dependency in useEffect
+  - [x] Added map initialization guards
+  - [x] Prevented duplicate map initialization
+
+### HIGH
+
+- [x] Replace MapLibre GL with Leaflet for better reliability
+  - [x] Installed leaflet and @types/leaflet
+  - [x] Rewrote map component to use Leaflet
+  - [x] Changed tile provider to CartoDB Voyager (free, reliable)
+  - [x] Removed maplibre-gl dependency
+
+- [x] Fix Leaflet SSR error (window is not defined)
+  - [x] Added dynamic import with ssr: false
+  - [x] Updated feed page to use dynamic import
+  - [x] Updated map page to use dynamic import
+
+## 2026-02-13 (District Filter Improvement)
+
+- [x] Replace district text input with dropdown select
+  - [x] Add district translations for en, ru, kk
+  - [x] Update FilterBar component with Select
+  - [x] Remove unused Input import
+
+---
+
+## 2026-02-13 (Almaty Test Events - Map Markers)
+
+- [x] Create seed script for Almaty test events with landmarks
+  - [x] Create backend/scripts/seed-almaty-test-events.ts with 10 landmark events
+  - [x] Add real coordinates for popular Almaty locations
+- [x] Run seed script to add test events to database
+  - [x] Fix PostgreSQL password authentication issue
+  - [x] Execute seed script inside Docker container
+  - [x] Verify 10 events created successfully

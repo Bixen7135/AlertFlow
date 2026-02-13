@@ -1,9 +1,20 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
-import { MapView } from '@/components/map/map-view';
 import { useTranslations } from '@/lib/i18n/context';
+import { Loader2 } from 'lucide-react';
+
+// Dynamic import for MapView to avoid SSR issues with Leaflet
+const MapView = dynamic(() => import('@/components/map/map-view').then(mod => ({ default: mod.MapView })), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full bg-[#131825]">
+      <Loader2 className="w-8 h-8 animate-spin text-[#00D9FF]" />
+    </div>
+  ),
+});
 
 /**
  * Map page component

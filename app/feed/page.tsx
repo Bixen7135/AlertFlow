@@ -2,17 +2,27 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { FilterBar } from '@/components/event/filter-bar';
 import { EventCard } from '@/components/event/event-card';
-import { MapView } from '@/components/map/map-view';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { getEvents, type EventsQuery } from '@/lib/api/events';
 import { useTranslations } from '@/lib/i18n/context';
 import type { EventListItem } from '@/lib/api/types';
 import { Loader2, AlertCircle, Map as MapIcon, List } from 'lucide-react';
+
+// Dynamic import for MapView to avoid SSR issues with Leaflet
+const MapView = dynamic(() => import('@/components/map/map-view').then(mod => ({ default: mod.MapView })), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 className="w-8 h-8 animate-spin text-[--color-primary]" />
+    </div>
+  ),
+});
 
 /**
  * Events list component

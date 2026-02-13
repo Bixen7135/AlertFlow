@@ -12,7 +12,11 @@
       "Bash(bun run migrate:*)",
       "Bash(docker-compose:*)",
       "Bash(docker compose:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(docker exec:*)",
+      "Bash(DATABASE_URL=\"postgres://alertflow:alertflow@localhost:5432/alertflow\" bun run:*)",
+      "Bash(DATABASE_URL=\"postgresql://alertflow:alertflow@localhost:5432/alertflow\" bun run:*)",
+      "Bash(docker cp:*)"
     ]
   }
 }

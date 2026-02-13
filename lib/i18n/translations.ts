@@ -32,6 +32,17 @@ export interface Translations {
     utility: string;
     other: string;
   };
+  // Districts
+  districts: {
+    almaly: string;
+    auezov: string;
+    bostandyk: string;
+    jetysu: string;
+    medeu: string;
+    nauryzbay: string;
+    turksib: string;
+    alatau: string;
+  };
   // Severity levels
   severities: {
     low: string;
@@ -156,6 +167,16 @@ export const translations: Record<Language, Translations> = {
       utility: 'Utility',
       other: 'Other',
     },
+    districts: {
+      almaly: 'Almaly',
+      auezov: 'Auezov',
+      bostandyk: 'Bostandyk',
+      jetysu: 'Jetysu',
+      medeu: 'Medeu',
+      nauryzbay: 'Nauryzbay',
+      turksib: 'Turksib',
+      alatau: 'Alatau',
+    },
     severities: {
       low: 'Low',
       medium: 'Medium',
@@ -266,6 +287,16 @@ export const translations: Record<Language, Translations> = {
       utility: 'Коммунальные службы',
       other: 'Другое',
     },
+    districts: {
+      almaly: 'Алмалинский',
+      auezov: 'Ауэзовский',
+      bostandyk: 'Бостандыкский',
+      jetysu: 'Жетысуский',
+      medeu: 'Медеуский',
+      nauryzbay: 'Наурызбайский',
+      turksib: 'Турксибский',
+      alatau: 'Алатауский',
+    },
     severities: {
       low: 'Низкий',
       medium: 'Средний',
@@ -375,6 +406,16 @@ export const translations: Record<Language, Translations> = {
       health: 'Денсаулық',
       utility: 'Коммуналдық қызметтер',
       other: 'Басқа',
+    },
+    districts: {
+      almaly: 'Алмалы',
+      auezov: 'Әуезов',
+      bostandyk: 'Бостандық',
+      jetysu: 'Жетісу',
+      medeu: 'Медеу',
+      nauryzbay: 'Наурызбай',
+      turksib: 'Түрксіб',
+      alatau: 'Алатау',
     },
     severities: {
       low: 'Төмен',

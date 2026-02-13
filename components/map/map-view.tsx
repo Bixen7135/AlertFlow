@@ -7,11 +7,11 @@ import { getMapEvents, type MapEventsQuery } from '@/lib/api/events';
 import { useTranslations } from '@/lib/i18n/context';
 import type { MapEventFeature, EventType, Severity } from '@/lib/api/types';
 import { Filter, Loader2, AlertCircle, X } from 'lucide-react';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// MapLibre GL configuration
-const ALMATY_CENTER: [number, number] = [76.8512, 43.2220]; // [lng, lat]
+// Almaty coordinates
+const ALMATY_CENTER: [number, number] = [43.2220, 76.8512]; // [lat, lng] for Leaflet
 
 interface MapViewProps {
   query?: MapEventsQuery;
@@ -20,14 +20,14 @@ interface MapViewProps {
 }
 
 /**
- * MapLibre GL Map view component
- * Uses free OpenStreetMap tiles - no API key required
+ * Leaflet Map view component
+ * Uses free tile servers (CartoDB, OpenStreetMap fallback)
  * Displays event markers with severity-based colors
  */
 export function MapView({ query, onEventClick, showFilters = true }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
   const t = useTranslations();
 
   const [typeFilter, setTypeFilter] = useState<EventType | 'all' | ''>('all');
@@ -37,9 +37,9 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
   const [events, setEvents] = useState<MapEventFeature[]>([]);
 
   /**
-   * Create marker icon based on severity
+   * Create custom marker icon based on severity
    */
-  const createSeverityIcon = useCallback((severity: Severity): string => {
+  const createSeverityIcon = useCallback((severity: Severity): L.DivIcon => {
     const colors: Record<Severity, string> = {
       critical: '#D93A3A',
       high: '#F97316',
@@ -49,45 +49,48 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
 
     const color = colors[severity] || '#3FB7A7';
 
-    const svgString = `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="12" fill="${color}" stroke="white" stroke-width="2"/>
-        <circle cx="16" cy="16" r="5" fill="white"/>
-      </svg>`;
-    return `data:image/svg+xml,${encodeURIComponent(svgString)}`;
-  }, []);
+    const html = `
+      <div style="
+        width: 32px;
+        height: 32px;
+        background: ${color};
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <div style="
+          width: 10px;
+          height: 10px;
+          background: white;
+          border-radius: 50%;
+        "></div>
+      </div>
+    `;
 
-  /**
-   * Create marker element with icon
-   */
-  const createMarkerElement = useCallback((severity: Severity): HTMLElement => {
-    const el = document.createElement('div');
-    el.className = 'map-marker';
-    el.style.width = '32px';
-    el.style.height = '32px';
-    el.style.cursor = 'pointer';
-    el.style.backgroundImage = `url(${createSeverityIcon(severity)})`;
-    el.style.backgroundSize = 'contain';
-    el.style.backgroundRepeat = 'no-repeat';
-    return el;
-  }, [createSeverityIcon]);
+    return L.divIcon({
+      html,
+      className: 'custom-marker',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+    });
+  }, []);
 
   /**
    * Fit map bounds to show all markers
    */
   const fitMapToMarkers = useCallback(() => {
     const map = mapRef.current;
-
     if (!map || markersRef.current.length === 0) return;
 
-    const bounds = new maplibregl.LngLatBounds();
-
-    markersRef.current.forEach(marker => {
-      const lngLat = marker.getLngLat();
-      bounds.extend(lngLat);
-    });
+    const bounds = L.latLngBounds(
+      markersRef.current.map(marker => marker.getLatLng())
+    );
 
     map.fitBounds(bounds, {
-      padding: { top: 50, bottom: 50, left: 50, right: 50 },
+      padding: [50, 50],
     });
   }, []);
 
@@ -108,31 +111,26 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
         if (!lng || !lat) return;
 
         const severity = feature.properties.severity;
-        const markerElement = createMarkerElement(severity);
+        const icon = createSeverityIcon(severity);
 
         // Create popup
-        const popup = new maplibregl.Popup({ offset: 20, className: 'event-popup' })
-          .setHTML(`
-            <div class="p-3 min-w-[200px]">
-              <h3 class="font-semibold mb-1 text-sm">${feature.properties.title}</h3>
-              <p class="text-xs text-gray-600 mb-2">${feature.properties.description || ''}</p>
-              <a href="/event/${feature.properties.id}" class="text-blue-600 hover:underline text-xs font-medium">
-                View details &rarr;
-              </a>
-            </div>
-          `);
+        const popupContent = `
+          <div style="padding: 12px; min-width: 200px;">
+            <h3 style="font-weight: 600; margin-bottom: 4px; font-size: 14px;">${feature.properties.title}</h3>
+            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${feature.properties.description || ''}</p>
+            <a href="/event/${feature.properties.id}" style="color: #00D9FF; text-decoration: none; font-size: 12px; font-weight: 500;">
+              View details →
+            </a>
+          </div>
+        `;
 
         // Create marker
-        const marker = new maplibregl.Marker({
-          element: markerElement,
-          anchor: 'bottom',
-        })
-          .setLngLat([lng, lat])
-          .setPopup(popup)
+        const marker = L.marker([lat, lng], { icon })
+          .bindPopup(popupContent)
           .addTo(map);
 
         // Add click handler
-        markerElement.addEventListener('click', () => {
+        marker.on('click', () => {
           if (onEventClick) {
             onEventClick(feature.properties.id);
           }
@@ -145,13 +143,15 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
         fitMapToMarkers();
       }
     },
-    [createMarkerElement, fitMapToMarkers, onEventClick]
+    [createSeverityIcon, fitMapToMarkers, onEventClick]
   );
 
   /**
    * Load events and update map markers
    */
   const loadEvents = useCallback(async () => {
+    if (!mapRef.current) return;
+
     setLoading(true);
     setError(null);
 
@@ -173,7 +173,7 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
   }, [typeFilter, severityFilter, updateMapMarkers, t.map?.error]);
 
   /**
-   * Initialize MapLibre GL map
+   * Initialize Leaflet map
    */
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -181,51 +181,45 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
     const container = mapContainerRef.current;
     if (!container) return;
 
-    let destroyed = false;
+    // Prevent duplicate initialization
+    if (mapRef.current) {
+      console.warn('Map already initialized, skipping...');
+      return;
+    }
 
-    // Initialize map
     try {
-      const map = new maplibregl.Map({
-        container,
-        style: 'https://demotiles.maplibre.org/maputiro/styles/osm-bright/style.json',
+      // Initialize Leaflet map
+      const map = L.map(container, {
         center: ALMATY_CENTER,
         zoom: 11,
-        attributionControl: false,
+        zoomControl: true,
       });
+
+      // Add tile layer with multiple providers for reliability
+      // Primary: CartoDB Voyager (free, reliable, no API key)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19,
+        subdomains: 'abcd',
+      }).addTo(map);
 
       mapRef.current = map;
 
-      // Add custom CSS for map container
-      container.style.background = '#131825';
-
-      // Wait for map to load before loading events
-      map.on('load', () => {
-        if (!destroyed) {
-          loadEvents();
-        }
-      });
-
-      map.on('error', (e) => {
-        console.error('Map error:', e);
-        if (!destroyed) {
-          setError('Map failed to load');
-          setLoading(false);
-        }
-      });
+      // Load events after map is ready
+      setTimeout(() => {
+        loadEvents();
+      }, 100);
     } catch (err: unknown) {
-      console.error('Failed to init MapLibre GL:', err);
+      console.error('Failed to init Leaflet map:', err);
       setError('Map failed to initialize');
       setLoading(false);
     }
 
     return () => {
-      destroyed = true;
-
-      // Remove markers
+      // Cleanup
       markersRef.current.forEach(marker => marker.remove());
       markersRef.current = [];
 
-      // Remove map
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -238,7 +232,8 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
     if (mapRef.current) {
       loadEvents();
     }
-  }, [typeFilter, severityFilter, loadEvents]); // Only depend on filters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeFilter, severityFilter]);
 
   function handleTypeFilterChange(value: string) {
     setTypeFilter(value as EventType | 'all' | '');
@@ -262,7 +257,7 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
       <div ref={mapContainerRef} className="absolute inset-0 rounded-lg overflow-hidden" />
 
       {loading && (
-        <div className="absolute top-4 left-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4">
+        <div className="absolute top-4 left-4 z-[1000] bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4">
           <div className="flex items-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-[#00D9FF]" />
             <span className="text-sm text-[#E8EDF4]">{t.map?.loading || 'Loading...'}</span>
@@ -271,7 +266,7 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
       )}
 
       {error && (
-        <div className="absolute top-4 left-4 right-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4 flex items-start gap-3">
+        <div className="absolute top-4 left-4 right-4 z-[1000] bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[#FF2E63] shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-[#E8EDF4] mb-2">{error}</p>
@@ -283,7 +278,7 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
       )}
 
       {showFilters && (
-        <div className="absolute top-4 right-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4 w-64">
+        <div className="absolute top-4 right-4 z-[1000] bg-[#131825] border border-[#374151] rounded-lg shadow-md p-4 w-64">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-[#E8EDF4]" />
@@ -338,12 +333,27 @@ export function MapView({ query, onEventClick, showFilters = true }: MapViewProp
       )}
 
       {!loading && !error && (
-        <div className="absolute bottom-4 left-4 z-10 bg-[#131825] border border-[#374151] rounded-lg shadow-md px-3 py-2">
+        <div className="absolute bottom-4 left-4 z-[1000] bg-[#131825] border border-[#374151] rounded-lg shadow-md px-3 py-2">
           <p className="text-sm text-[#E8EDF4]">
             {events.length} {events.length === 1 ? 'event' : 'events'} displayed
           </p>
         </div>
       )}
+
+      <style jsx global>{`
+        .leaflet-popup-content-wrapper {
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .leaflet-popup-tip {
+          background: white;
+        }
+        .custom-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+      `}</style>
     </div>
   );
 }
